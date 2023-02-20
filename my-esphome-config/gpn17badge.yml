@@ -1,6 +1,5 @@
 esphome:
   name: gpn17badge
-
   includes:
     - pca9571.h
     - disp_test.h
@@ -8,15 +7,19 @@ esphome:
     board_build.flash_mode: dio
   libraries:
     #- sumotoy/TFT_ILI9163=
-    - https://github.com/sumotoy/TFT_ILI9163C.git#1.0p8
+    - SPI
+    - https://github.com/adafruit/Adafruit-GFX-Library.git#1.2.2
+    #- adafruit/Adafruit GFX Library
+    - https://github.com/luelista/TFT_ILI9163C_gpn17badge.git#master
 
   on_boot:
     priority: 800
     then:
-      - script.execute: test_disp_script
+     - script.execute: test_disp_script
 
 esp8266:
   board: nodemcuv2
+
 
 # Enable logging
 logger:
@@ -101,14 +104,31 @@ sensor:
       return analogRead(A0);
     update_interval: 20s
 
-  - platform: template
-    internal: true
-    name: Joystick
-    lambda: |-
-      ((PCA9571Component*)multiplexer)->select_analog(ANALOG_JOYSTK);
-      delay(10);
-      return analogRead(A0);
-    update_interval: 1s
+
+interval:
+  - interval: 0.2s
+    then:
+      - lambda: |-
+          ((PCA9571Component*)multiplexer)->select_analog(ANALOG_JOYSTK);
+          delay(5);
+          int value = analogRead(0);
+          if (value > 430 && value < 530)
+            id(joystick_right).publish_state(true);
+          else
+            id(joystick_right).publish_state(false);
+          if (value > 530 && value < 630)
+            id(joystick_down).publish_state(true);
+          else
+            id(joystick_down).publish_state(false);
+          if (value > 670 && value < 770)
+            id(joystick_up).publish_state(true);
+          else
+            id(joystick_up).publish_state(false);
+          if (value > 910)
+            id(joystick_left).publish_state(true);
+          else
+            id(joystick_left).publish_state(false);
+
 
 
 remote_transmitter:
@@ -134,7 +154,38 @@ button:
     on_press:
       remote_transmitter.transmit_jvc:
         data: 0xD02F
+
+
 binary_sensor:
+
+  - platform: template
+    id: joystick_left
+    on_press:
+      - lambda: |-
+          ESP_LOGI("joystick", "Left");
+
+  - platform: template
+    id: joystick_right
+    on_press:
+      - lambda: |-
+          ESP_LOGI("joystick", "Right");
+
+  - platform: template
+    id: joystick_up
+    on_press:
+      - lambda: |-
+          ESP_LOGI("joystick", "Up");
+      - remote_transmitter.transmit_jvc:
+          data: 0x48B7
+
+  - platform: template
+    id: joystick_down
+    on_press:
+      - lambda: |-
+          ESP_LOGI("joystick", "Down");
+      - remote_transmitter.transmit_jvc:
+          data: 0xD02F
+
   - platform: gpio
     pin:
       number: GPIO16
@@ -147,8 +198,6 @@ binary_sensor:
           data: 0x00ff
 
       - switch.toggle: lcd_backlight
-      - lambda: |-
-          ((ILI9163CTestComponent*)disp_test)->initialize();
 
 # display:
 #   - platform: ili9341

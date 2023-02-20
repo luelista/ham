@@ -5,10 +5,12 @@
 #define __DC 0
 
 TFT_ILI9163C tft = TFT_ILI9163C(__CS, __DC);
-class ILI9163CTestComponent : public Component {
+class ILI9163CTestComponent : public PollingComponent {
   float angle=0;
-  bool is_init=false;
+  int is_init=0;
 public:
+  ILI9163CTestComponent() : PollingComponent(1000) {}
+
   void setup() override {
   }
 
@@ -30,20 +32,26 @@ public:
     tft.setRotation(2); //turn screen
     tft.scroll(32); //move down by 32 pixels (needed)
     tft.fillScreen(BLACK);  //make screen black
+    tft.setTextSize(2);
+    tft.setCursor(25, 48);
+    tft.print("miratest");
+    tft.writeFramebuffer();
 
     ESP_LOGD("custom", "Display Initialized!");
-    is_init=true;
+    is_init=1;
 
   }
 
-  void loop() override {
-    if (!is_init) return;
+  void update() override {
+    tft.fillScreen(BLACK);  //make screen black
+    tft.setTextSize(1);
+    tft.setCursor(15, 48);
+    tft.print("gpn17badge");
+    char out[10];
 
-    uint16_t clr = (((angle_to_channel(angle - 4 * PI / 3) >> 1) & 0xF8) << 8) | (((angle_to_channel(angle - 2 * PI / 3)) & 0xFC) << 3) | ((angle_to_channel(angle) >> 1) >> 3);
-    tft.fillScreen(clr);
-
-    angle += 0.01;
-    if (angle > PI)
-        angle -= 2 * PI;
+    id(homeassistant_time).now().strftime(out, sizeof(out), "%H:%M:%S");
+    tft.setCursor(15, 90);
+    tft.print(out);
+    tft.writeFramebuffer();
   }
 };
