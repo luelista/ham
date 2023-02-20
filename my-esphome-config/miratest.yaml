@@ -68,12 +68,12 @@ switch:
     id: TM1638Led5
     led: 4
     name: "LED 5"
-
-binary_sensor:
+output:
   - platform: gpio
     pin: D7
-    id: Feuchtigkeitssensor
-    name: Feuchtigkeitssensor
+    id: Feuchtigkeitssensor_an
+
+binary_sensor:
 
   - platform: tm1638
     name: "TM1638 Button 1"
@@ -123,6 +123,7 @@ i2c:
   scl: D5
   scan: true
   id: bus_a
+  frequency: 10kHz
 
 #      D5 SCL
 #      D6 SDA
@@ -140,6 +141,21 @@ sensor:
     address: 0x76
     update_interval: 60s
     id: envsensor
+
+  - platform: adc
+    pin: A0
+    name: "Feuchtigkeitssensor"
+    id: Feuchtigkeitssensor
+    update_interval: never
+
+interval:
+  - interval: 180s
+    then:
+      - output.turn_on: Feuchtigkeitssensor_an
+      - delay: 500ms
+      - component.update: Feuchtigkeitssensor
+      - delay: 50ms
+      - output.turn_off: Feuchtigkeitssensor_an
 
 number:
   - platform: template
